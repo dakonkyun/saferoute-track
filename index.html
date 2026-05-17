@@ -3,27 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SafeRoute — Отслеживание</title>
+  <title>SafeRoute</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0A0E1A; color:#E8EDF8; font-family:-apple-system,sans-serif; }
+    body { background:#0A0E1A; color:#E8EDF8; font-family:-apple-system,sans-serif; min-height:100vh; }
     #map { width:100vw; height:60vh; }
     .info { padding:16px; }
     .card { background:#161D2E; border:1px solid #1E2A42; border-radius:12px; padding:14px; margin-bottom:10px; }
     .name { font-size:18px; font-weight:800; color:#00E5A0; }
     .dest { font-size:13px; color:#6B7A99; margin-top:4px; }
-    .status { font-size:13px; margin-top:8px; }
-    .safe { color:#00E5A0; } .warn { color:#FFB547; }
+    .status { font-size:13px; margin-top:8px; color:#00E5A0; }
     .arrived { background:rgba(0,229,160,0.1); border-color:#00E5A0; text-align:center; padding:20px; }
     .arrived-text { font-size:20px; font-weight:900; color:#00E5A0; }
-    .loading { text-align:center; padding:40px; color:#6B7A99; }
+    .add-friend { text-align:center; padding:40px 20px; }
+    .logo { font-size:60px; margin-bottom:20px; }
+    .title { font-size:28px; font-weight:900; color:#00E5A0; margin-bottom:10px; }
+    .subtitle { color:#6B7A99; margin-bottom:30px; font-size:14px; }
+    .username-box { background:#161D2E; border:2px solid #00E5A0; border-radius:14px; padding:20px; margin:20px auto; max-width:400px; }
+    .username { font-size:24px; font-weight:800; color:#fff; }
+    .label { color:#6B7A99; font-size:12px; margin-bottom:8px; }
+    .btn { background:#00E5A0; color:#000; padding:14px 24px; border-radius:12px; font-weight:800; font-size:14px; text-decoration:none; display:inline-block; margin-top:20px; }
+    .btn-secondary { background:#161D2E; color:#00E5A0; border:1px solid #00E5A0; margin-left:10px; }
+    .steps { text-align:left; max-width:400px; margin:30px auto; color:#6B7A99; font-size:13px; line-height:1.8; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div class="info">
-    <div id="content" class="loading">Загрузка...</div>
-  </div>
+  <div id="content"></div>
 
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
@@ -39,71 +44,72 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const id = new URLSearchParams(window.location.search).get('id');
-    let map, marker;
+    const params = new URLSearchParams(window.location.search);
+    const trackId = params.get('id');
+    const username = params.get('username');
 
-    function initMap(lat, lng) {
-      map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat, lng },
-        zoom: 15,
-        styles: [
-          {elementType:'geometry',stylers:[{color:'#0A0E1A'}]},
-          {elementType:'labels.text.fill',stylers:[{color:'#6B7A99'}]},
-          {featureType:'road',elementType:'geometry',stylers:[{color:'#1E2A42'}]},
-          {featureType:'water',elementType:'geometry',stylers:[{color:'#060D1A'}]},
-        ]
-      });
-      marker = new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        title: 'Пользователь',
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#00E5A0',
-          fillOpacity: 1,
-          strokeColor: '#fff',
-          strokeWeight: 2,
-        }
-      });
-    }
-
-    if (!id) {
-      document.getElementById('content').innerHTML = '<div class="card"><p style="color:#FF4D6A">Ссылка недействительна</p></div>';
-    } else {
-      db.collection('withme').doc(id).onSnapshot(doc => {
+    if (username) {
+      document.getElementById('content').innerHTML =
+        '<div class="add-friend">' +
+        '<div class="logo">🛡️</div>' +
+        '<div class="title">SafeRoute</div>' +
+        '<div class="subtitle">Добавь меня в друзья!</div>' +
+        '<div class="username-box">' +
+        '<div class="label">Мой username:</div>' +
+        '<div class="username">@' + decodeURIComponent(username) + '</div>' +
+        '</div>' +
+        '<div class="steps">' +
+        '<b style="color:#00E5A0">Как добавить:</b><br>' +
+        '1. Открой приложение SafeRoute<br>' +
+        '2. Перейди во вкладку 👥 Друзья<br>' +
+        '3. Нажми 🔍 Найти<br>' +
+        '4. Введи @' + decodeURIComponent(username) + '<br>' +
+        '5. Нажми «+ Добавить»<br>' +
+        '</div>' +
+        '</div>';
+    } else if (trackId) {
+      document.getElementById('content').innerHTML = '<div id="map" style="height:60vh"></div><div class="info"><div id="track-info" class="card">Загрузка...</div></div>';
+      let map, marker;
+      function initMap(lat, lng) {
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: { lat, lng }, zoom: 15,
+          styles: [
+            {elementType:'geometry',stylers:[{color:'#0A0E1A'}]},
+            {elementType:'labels.text.fill',stylers:[{color:'#6B7A99'}]},
+            {featureType:'road',elementType:'geometry',stylers:[{color:'#1E2A42'}]},
+            {featureType:'water',elementType:'geometry',stylers:[{color:'#060D1A'}]},
+          ]
+        });
+        marker = new google.maps.Marker({
+          position: { lat, lng }, map,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 10, fillColor: '#00E5A0', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 }
+        });
+      }
+      db.collection('withme').doc(trackId).onSnapshot(doc => {
         if (!doc.exists) return;
         const data = doc.data();
-        const arrived = data.arrived;
-        const username = data.username || 'Пользователь';
-        const dest = data.destination || '';
-
-        if (arrived) {
-          document.getElementById('content').innerHTML =
-            '<div class="card arrived"><div style="font-size:36px">✅</div><div class="arrived-text">' + username + ' на месте!</div><div class="dest" style="margin-top:6px">Прибыл(а) в ' + dest + '</div></div>';
+        if (data.arrived) {
+          document.getElementById('track-info').innerHTML =
+            '<div class="arrived"><div style="font-size:36px">✅</div><div class="arrived-text">' + (data.username || 'Пользователь') + ' на месте!</div></div>';
           return;
         }
-
-        document.getElementById('content').innerHTML =
-          '<div class="card"><div class="name">🛡️ ' + username + '</div><div class="dest">📍 Идёт в: ' + dest + '</div><div class="status safe">● В пути — обновляется каждые 10 сек</div></div>' +
-          '<div class="card"><div style="font-size:12px;color:#6B7A99">Если не нажмёт "Я на месте" вовремя — придёт тревожное уведомление</div></div>';
+        document.getElementById('track-info').innerHTML =
+          '<div class="name">🛡️ ' + (data.username || 'Пользователь') + '</div>' +
+          '<div class="dest">📍 Идёт в: ' + (data.destination || '') + '</div>' +
+          '<div class="status">● В пути — обновляется каждые 10 сек</div>';
       });
-
       db.collection('guard').onSnapshot(snap => {
         snap.forEach(doc => {
           const data = doc.data();
           if (data.latitude && data.longitude) {
-            const lat = data.latitude;
-            const lng = data.longitude;
-            if (!map) {
-              initMap(lat, lng);
-            } else {
-              marker.setPosition({ lat, lng });
-              map.setCenter({ lat, lng });
-            }
+            if (!map) initMap(data.latitude, data.longitude);
+            else { marker.setPosition({ lat: data.latitude, lng: data.longitude }); map.setCenter({ lat: data.latitude, lng: data.longitude }); }
           }
         });
       });
+    } else {
+      document.getElementById('content').innerHTML =
+        '<div class="add-friend"><div class="logo">🛡️</div><div class="title">SafeRoute</div><div class="subtitle">Безопасные маршруты Алматы</div></div>';
     }
   </script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA-jUXyPQTf17mF2G5OVlbnish_PT1P-Ws&callback=Function.prototype"></script>
