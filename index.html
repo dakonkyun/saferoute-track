@@ -58,15 +58,22 @@
         '<div class="label">Мой username:</div>' +
         '<div class="username">@' + decodeURIComponent(username) + '</div>' +
         '</div>' +
-        '<div class="steps">' +
-        '<b style="color:#00E5A0">Как добавить:</b><br>' +
-        '1. Открой приложение SafeRoute<br>' +
-        '2. Перейди во вкладку 👥 Друзья<br>' +
-        '3. Нажми 🔍 Найти<br>' +
-        '4. Введи @' + decodeURIComponent(username) + '<br>' +
-        '5. Нажми «+ Добавить»<br>' +
-        '</div>' +
+       '<button id="addBtn" style="background:#00E5A0;color:#000;padding:16px 24px;border-radius:13px;font-weight:900;font-size:16px;border:none;cursor:pointer;margin-top:20px;display:block;width:100%;max-width:400px;margin-left:auto;margin-right:auto;">➕ Добавить @' + decodeURIComponent(username) + ' в друзья</button>' +
         '</div>';
+
+      (function() {
+        const PACKAGE = 'com.dakonkyun.SafeRoute';
+        // Если приложение в Play Store — оставь как есть.
+        // Если раздаёшь APK напрямую — впиши прямую ссылку на .apk вместо строки ниже.
+        const FALLBACK = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
+        const intentUrl =
+          'intent://add?username=' + encodeURIComponent(username) +
+          '#Intent;scheme=saferoute;package=' + PACKAGE +
+          ';S.browser_fallback_url=' + encodeURIComponent(FALLBACK) + ';end';
+        document.getElementById('addBtn').onclick = function() {
+          window.location.href = intentUrl;
+        };
+      })();
     } else if (trackId) {
       document.getElementById('content').innerHTML = '<div id="map" style="height:60vh"></div><div class="info"><div id="track-info" class="card">Загрузка...</div></div>';
       let map, marker;
