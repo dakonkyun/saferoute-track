@@ -93,27 +93,55 @@
         });
       }
       db.collection('withme').doc(trackId).onSnapshot(doc => {
-        if (!doc.exists) return;
-        const data = doc.data();
-        if (data.arrived) {
-          document.getElementById('track-info').innerHTML =
-            '<div class="arrived"><div style="font-size:36px">✅</div><div class="arrived-text">' + (data.username || 'Пользователь') + ' на месте!</div></div>';
-          return;
-        }
-        document.getElementById('track-info').innerHTML =
-          '<div class="name">🛡️ ' + (data.username || 'Пользователь') + '</div>' +
-          '<div class="dest">📍 Идёт в: ' + (data.destination || '') + '</div>' +
-          '<div class="status">● В пути — обновляется каждые 10 сек</div>';
-      });
-      db.collection('guard').onSnapshot(snap => {
-        snap.forEach(doc => {
-          const data = doc.data();
-          if (data.latitude && data.longitude) {
-            if (!map) initMap(data.latitude, data.longitude);
-            else { marker.setPosition({ lat: data.latitude, lng: data.longitude }); map.setCenter({ lat: data.latitude, lng: data.longitude }); }
-          }
-        });
-      });
+  const info = document.getElementById('track-info');
+
+  if (!doc.exists) {
+    info.innerHTML = 'Сессия отслеживания не найдена';
+    return;
+  }
+
+  const data = doc.data();
+
+  if (data.arrived || data.status === 'arrived') {
+    info.innerHTML =
+      '<div class="arrived">' +
+      '<div style="font-size:36px">✅</div>' +
+      '<div class="arrived-text">' + (data.username || 'Пользователь') + ' на месте!</div>' +
+      '</div>';
+    return;
+  }
+
+  info.innerHTML =
+    '<div class="name">🛡️ ' + (data.username || 'Пользователь') + '</div>' +
+    '<div class="dest">📍 Идёт в: ' + (data.destination || '') + '</div>' +
+    '<div class="status">● В пути — обновляется в реальном времени</div>';
+
+  let lat = null;
+  let lng = null;
+
+  if (data.currentLocation) {
+    lat = data.currentLocation.latitude;
+    lng = data.currentLocation.longitude;
+  } else if (data.latitude && data.longitude) {
+    lat = data.latitude;
+    lng = data.longitude;
+  }
+
+  if (!lat || !lng) {
+    info.innerHTML += '<div class="dest" style="margin-top:10px;color:#FFB547">Координаты ещё не получены. Открой приложение и разреши геолокацию.</div>';
+    return;
+  }
+
+  if (!map) {
+    initMap(lat, lng);
+  } else {
+    marker.setPosition({ lat: lat, lng: lng });
+    map.setCenter({ lat: lat, lng: lng });
+  }
+}, error => {
+  document.getElementById('track-info').innerHTML =
+    'Ошибка загрузки данных: ' + error.message;
+});
     } else {
       document.getElementById('content').innerHTML =
         '<div class="add-friend"><div class="logo">🛡️</div><div class="title">SafeRoute</div><div class="subtitle">Безопасные маршруты Алматы</div></div>';
