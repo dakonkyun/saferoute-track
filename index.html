@@ -26,6 +26,11 @@
     .btn-secondary { background:#161D2E; color:#00E5A0; border:1px solid #00E5A0; margin-left:10px; }
     .steps { text-align:left; max-width:400px; margin:30px auto; color:#6B7A99; font-size:13px; line-height:1.8; }
   </style>
+  <link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <div id="content"></div>
@@ -63,8 +68,6 @@
 
       (function() {
         const PACKAGE = 'com.dakonkyun.SafeRoute';
-        // Если приложение в Play Store — оставь как есть.
-        // Если раздаёшь APK напрямую — впиши прямую ссылку на .apk вместо строки ниже.
         const FALLBACK = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
         const intentUrl =
           'intent://add?username=' + encodeURIComponent(username) +
@@ -77,21 +80,23 @@
     } else if (trackId) {
       document.getElementById('content').innerHTML = '<div id="map" style="height:60vh"></div><div class="info"><div id="track-info" class="card">Загрузка...</div></div>';
       let map, marker;
-      function initMap(lat, lng) {
-        map = new google.maps.Map(document.getElementById('map'), {
-          center: { lat, lng }, zoom: 15,
-          styles: [
-            {elementType:'geometry',stylers:[{color:'#0A0E1A'}]},
-            {elementType:'labels.text.fill',stylers:[{color:'#6B7A99'}]},
-            {featureType:'road',elementType:'geometry',stylers:[{color:'#1E2A42'}]},
-            {featureType:'water',elementType:'geometry',stylers:[{color:'#060D1A'}]},
-          ]
-        });
-        marker = new google.maps.Marker({
-          position: { lat, lng }, map,
-          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 10, fillColor: '#00E5A0', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 }
-        });
-      }
+
+function initMap(lat, lng) {
+  map = L.map('map').setView([lat, lng], 15);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  marker = L.circleMarker([lat, lng], {
+    radius: 10,
+    color: '#ffffff',
+    weight: 2,
+    fillColor: '#00E5A0',
+    fillOpacity: 1
+  }).addTo(map);
+}
       db.collection('withme').doc(trackId).onSnapshot(doc => {
   const info = document.getElementById('track-info');
 
@@ -133,11 +138,11 @@
   }
 
   if (!map) {
-    initMap(lat, lng);
-  } else {
-    marker.setPosition({ lat: lat, lng: lng });
-    map.setCenter({ lat: lat, lng: lng });
-  }
+  initMap(lat, lng);
+} else {
+  marker.setLatLng([lat, lng]);
+  map.setView([lat, lng], 15);
+}
 }, error => {
   document.getElementById('track-info').innerHTML =
     'Ошибка загрузки данных: ' + error.message;
@@ -147,6 +152,5 @@
         '<div class="add-friend"><div class="logo">🛡️</div><div class="title">SafeRoute</div><div class="subtitle">Безопасные маршруты Алматы</div></div>';
     }
   </script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA-jUXyPQTf17mF2G5OVlbnish_PT1P-Ws&callback=Function.prototype"></script>
 </body>
 </html>
